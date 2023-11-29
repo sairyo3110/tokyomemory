@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="12.0">
+<dict>
+	<key>CADisableMinimumFrameDurationOnPhone</key>
+	<true/>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<key>CFBundleDisplayName</key>
+	<string>トーメモ</string>
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>15.0</string>
+	<key>CFBundleName</key>
+	<string>mapapp</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>12</string>
+	<key>CFBundleSignature</key>
+	<string>????</string>
+	<key>CFBundleVersion</key>
+	<string>1.1.1</string>
+	<key>LSRequiresIPhoneOS</key>
+	<true/>
+	<key>MGLMapboxAccessToken</key>
+	<string>pk.eyJ1IjoiZW5wbGFjZSIsImEiOiJjbGx1bnF2b3IxNDExM2ZvaHMyZG5kZ3R6In0.XjQKdg5IaQDXHpD80SvQ5g</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>Your location is required for this app</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Your location is required for this app</string>
+	<key>UIApplicationSupportsIndirectInputEvents</key>
+	<true/>
+	<key>UILaunchStoryboardName</key>
+	<string>LaunchScreen</string>
+	<key>UIMainStoryboardFile</key>
+	<string>Main</string>
+	<key>UISupportedInterfaceOrientations</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+	<key>UISupportedInterfaceOrientations~ipad</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationPortraitUpsideDown</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+    <string>We use your location to provide [specific feature reason, e.g., "nearby restaurant recommendations"].</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+    <string>あなたの位置情報は、最寄りのデートスポットを見つけるために使用されます。例えば、アプリはあなたの現在の位置に基づいて、周辺のデートスポットのリストを提供します。</string>
+    <key>NSLocationAlwaysUsageDescription</key>
+    <string>あなたの位置情報は、バックグラウンドでのナビゲーションのために常時使用されます。例えば、アプリはあなたが移動するときに、ルートの更新を提供します。</string>
+    <!-- DeepLink -->
+	 <key>CFBundleURLTypes</key>
+	 <array>
+	   <dict>
+		 <key>CFBundleTypeRole</key>
+		 <string>Editor</string>
+		 <key>CFBundleURLSchemes</key>
+		 <array>
+		   <string>mapapp</string>
+		 </array>
+	   </dict>
+	 </array>
+	 <!-- ここまで -->
+</dict>
+</plist>
