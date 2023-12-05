@@ -18,6 +18,7 @@ import 'package:mapapp/test/PlaceChategories.dart';
 import 'package:mapapp/test/places_provider.dart';
 import 'package:mapapp/test/rerated_model.dart';
 import 'package:mapapp/view/coupon/coupon_list_screen.dart';
+import 'package:mapapp/view/ivent/ivent_detail_screen.dart';
 import 'package:mapapp/view/plan/plan_detail_screenrealy.dart';
 import 'package:mapapp/view/spot/spot_detail_screen.dart';
 import 'package:provider/provider.dart';
@@ -162,6 +163,31 @@ class _HomeScreenState extends State<HomeScreen> {
         }
       } else {
         print('Invalid plan ID: $planIdString');
+      }
+    } else if (host == 'ivent' && pathSegments.isNotEmpty) {
+      final String placeIdString = pathSegments.first;
+      print('Place ID from the deep link: $placeIdString');
+
+      final int? placeId = int.tryParse(placeIdString);
+      print('Parsed place ID: $placeId');
+
+      if (placeId != null) {
+        try {
+          print('Attempting to fetch ivent details for ID: $placeId');
+          PlacesProvider provider = PlacesProvider(context);
+          List<PlaceDetail> placeDetails =
+              await provider.fetchFilteredPlaceDetails([placeId]);
+          if (placeDetails.isNotEmpty) {
+            PlaceDetail placeDetail = placeDetails.first;
+            pushPage(IventDetailScreen(spot: placeDetail));
+          } else {
+            print('No place details found for place ID: $placeId');
+          }
+        } catch (e) {
+          print('Error fetching ivent details: $e');
+        }
+      } else {
+        print('Invalid place ID: $placeIdString');
       }
     } else {
       print('Unknown host: $host');

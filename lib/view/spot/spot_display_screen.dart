@@ -334,7 +334,7 @@ class _SpotDisplayScreenState extends State<SpotDisplayScreen> {
                                                     Icon(
                                                         size: 15.0,
                                                         Icons
-                                                            .attach_money), // Add your desired icon
+                                                            .currency_yen), // Add your desired icon
                                                     Text(
                                                       (double.tryParse(spot.dayMin ??
                                                                           '0')

@@ -147,5 +147,13 @@ class PlaceDetail {
 
   get place => null;
 
+  bool _showInfoWindow = false;
+
+  bool get showInfoWindow => _showInfoWindow;
+
+  set showInfoWindow(bool value) {
+    _showInfoWindow = value;
+  }
+
   set distance(double distance) {}
 }

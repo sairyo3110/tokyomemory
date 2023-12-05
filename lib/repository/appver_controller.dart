@@ -48,6 +48,6 @@ class AppVersionController extends ChangeNotifier {
     // ここでpubspec.yamlに記載のバージョンを返すと仮定しています。
     // 実際のアプリでは、pubspec.yamlからバージョンを読み取るか、
     // 手動で更新する必要があります。
-    return "12";
+    return "14";
   }
 }

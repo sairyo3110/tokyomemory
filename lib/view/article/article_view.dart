@@ -9,6 +9,7 @@ import 'package:mapapp/repository/clickInfo_controller2.dart';
 import 'package:mapapp/test/places_provider.dart';
 import 'package:mapapp/test/rerated_model.dart';
 import 'package:mapapp/view/coupon/coupon_detail_screen.dart';
+import 'package:mapapp/view/ivent/ivent_display_screen.dart';
 import 'package:universal_html/controller.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -183,6 +184,84 @@ class _ArticleViewState extends State<ArticleView> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Container(
+              padding: EdgeInsets.all(20.0), // 余白を追加
+              alignment: Alignment.centerLeft, // 左寄せ
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(height: 10.0), // 上に10.0の余白を追加
+                  Text(
+                    '12月イベント情報',
+                    style: TextStyle(
+                      color: Color(0xFFF6E6DC),
+                      fontSize: 20, // 文字サイズを40.0に設定
+                      fontWeight: FontWeight.w900, // ここを変更
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            InkWell(
+              onTap: () {
+                Navigator.of(context).push(MaterialPageRoute(
+                  builder: (context) => IventDisplayScreen(
+                    showMap: false,
+                    category: '',
+                    location: '',
+                    price: '',
+                  ),
+                ));
+              },
+              child: Card(
+                clipBehavior: Clip.antiAlias,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  children: [
+                    Container(
+                      width: 350,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(
+                            12), // Set the radius of the corner here
+                      ),
+                      child: ClipRRect(
+                        // This widget rounds the corners of the image
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.asset(
+                          'images/12ivent.png',
+                          width: 325,
+                          fit: BoxFit
+                              .cover, // Set the image to fit the Container
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: EdgeInsets.all(10.0),
+                      child: Text(
+                        '12月のイベント情報まとめました！',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                    Divider(),
+                    Padding(
+                      padding: EdgeInsets.all(8.0),
+                      child: Text(
+                        '詳しく見る',
+                        style: TextStyle(
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
             Container(
               padding: EdgeInsets.all(20.0), // 余白を追加
               alignment: Alignment.centerLeft, // 左寄せ
