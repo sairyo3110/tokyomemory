@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:amplify_auth_cognito/amplify_auth_cognito.dart';
 import 'package:amplify_flutter/amplify_flutter.dart';
+import 'package:mapapp/component/user_ivitesincode_dialog.dart';
 
 class UserProfileUpdateDialog extends StatefulWidget {
   final BuildContext parentContext;
@@ -313,6 +314,15 @@ class _UserProfileUpdateDialogState extends State<UserProfileUpdateDialog> {
               title: Text('誕生日'),
               onTap: _showDatePickerDialog,
               trailing: Text(userAttributes['birthdate'] ?? '未設定'),
+            ),
+            ListTile(
+              title: Text('招待コードがある方はここをタップ'),
+              onTap: () => showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (BuildContext context) =>
+                    UserIvitateIncodeDialog(parentContext: context),
+              ),
             ),
           ],
         ),

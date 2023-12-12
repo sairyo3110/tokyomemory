@@ -241,7 +241,7 @@ class _ArticleViewState extends State<ArticleView> {
                     Padding(
                       padding: EdgeInsets.all(10.0),
                       child: Text(
-                        '12月のイベント情報まとめました！',
+                        '東京で開催される12月のイベント情報まとめました！',
                         style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w900,

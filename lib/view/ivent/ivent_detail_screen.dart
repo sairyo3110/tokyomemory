@@ -30,11 +30,11 @@ class IventDetailScreen extends StatelessWidget {
         'https://apps.apple.com/jp/app/tokyo-memory/id6466747873';
     if (isAndroid) {
       Share.share(
-          'いい感じのイベント見つけた！\n\n${spot.name}\n\n▼ここから見てみて！\n${deepLinkUrl}\n\nアプリをダウンロードしていない場合はここから▼\n${AndroidLinkUrl}');
+          'ここ行きたい！\n\n${spot.name}\n\n▼ここから見てみて！\n${deepLinkUrl}\n\nアプリをダウンロードしていない場合はここから▼\n${AndroidLinkUrl}');
     }
     if (isIOS) {
       Share.share(
-          'いい感じのイベント見つけた！\n\n${spot.name}\n\n▼ここから見てみて！\n${deepLinkUrl}\n\nアプリをダウンロードしていない場合はここから▼\n${IOSLinkUrl}');
+          'ここ行きたい！\n\n${spot.name}\n\n▼ここから見てみて！\n${deepLinkUrl}\n\nアプリをダウンロードしていない場合はここから▼\n${IOSLinkUrl}');
     }
   }
 

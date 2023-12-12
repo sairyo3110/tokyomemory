@@ -7,23 +7,17 @@ import 'package:mapapp/component/user_ivitescode_dialog.dart';
 import 'package:mapapp/component/user_ivitesincode_dialog.dart';
 import 'package:mapapp/model/Invitecode.dart';
 import 'package:mapapp/repository/ivaite_controller.dart';
-import 'package:mapapp/view/user/settings_screen.dart';
-import 'package:mapapp/view/user/user_info_screen.dart';
-import 'dart:io' show Platform;
 
-class UserInfoScreen extends StatefulWidget {
+class InviteCodeScreen extends StatefulWidget {
   @override
-  _UserInfoScreenState createState() => _UserInfoScreenState();
+  _InviteCodeScreenState createState() => _InviteCodeScreenState();
 }
 
-class _UserInfoScreenState extends State<UserInfoScreen> {
+class _InviteCodeScreenState extends State<InviteCodeScreen> {
   String? username;
-  bool isAndroid = Platform.isAndroid;
-  bool isIOS = Platform.isIOS;
-  bool isLoading = false;
-
   String? userid;
   String? inviteCode;
+  bool isLoading = false;
   List<InviteCode> inviteCodes = []; // 招待コードのリスト
   List<UsedInviteCode> usedInviteCodes = []; // 使用済み招待コードのリスト
 
@@ -44,17 +38,6 @@ class _UserInfoScreenState extends State<UserInfoScreen> {
       });
     } catch (e) {
       print('Error fetching user: $e');
-    }
-  }
-
-  Future<void> _signOut() async {
-    try {
-      await Amplify.Auth.signOut(
-        options: const SignOutOptions(globalSignOut: true),
-      );
-      Navigator.of(context).pop(); // Close the modal bottom sheet
-    } catch (e) {
-      print('Error signing out: $e');
     }
   }
 
@@ -188,36 +171,11 @@ class _UserInfoScreenState extends State<UserInfoScreen> {
             ),
           ),
           Center(
-            child:
-                Text('${username ?? "ユーザー名"}', style: TextStyle(fontSize: 20)),
+            child: Text('招待機能について', style: TextStyle(fontSize: 20)),
           ),
           SizedBox(height: 16),
           ListTile(
-            title: Text('プロフィール編集'),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (context) => ProfileSettingsScreen()),
-              );
-            },
-          ),
-          ListTile(
-            title: Text('アプリについて'),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => SettingsScreen()),
-              );
-            },
-          ),
-          ListTile(
-            title: Text('ログアウト'),
-            onTap: _signOut,
-          ),
-          _buildInviteCodeTile(),
-          SizedBox(height: 30),
-          InkWell(
+            title: Text('アプリに招待する！'),
             onTap: () async {
               if (!isLoading) {
                 String? currentUserId = await getCurrentUserId();
@@ -236,26 +194,11 @@ class _UserInfoScreenState extends State<UserInfoScreen> {
                 });
               }
             },
-            child: isLoading
-                ? CircularProgressIndicator()
-                : Align(
-                    widthFactor: 0.6, // ここを調整してカードの横幅を制御します
-                    child: Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: Image.asset(
-                          'images/ivites.png',
-                          width: 370, // ここを調整して画像のサイズを一回り小さくします
-                          height: 210, // ここも同様に調整します
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                    ),
-                  ),
+            trailing: isLoading ? CircularProgressIndicator() : null,
           ),
+          SizedBox(height: 16),
+          _buildInviteCodeTile(),
+          SizedBox(height: 16),
         ],
       ),
     );

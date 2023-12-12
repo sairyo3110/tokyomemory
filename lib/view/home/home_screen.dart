@@ -21,6 +21,7 @@ import 'package:mapapp/view/coupon/coupon_list_screen.dart';
 import 'package:mapapp/view/ivent/ivent_detail_screen.dart';
 import 'package:mapapp/view/plan/plan_detail_screenrealy.dart';
 import 'package:mapapp/view/spot/spot_detail_screen.dart';
+import 'package:mapapp/view/user/Invite.dart';
 import 'package:provider/provider.dart';
 import 'package:uni_links/uni_links.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -307,7 +308,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final List<String> imgList = [
       'images/Holiday_Tokyo.png',
       'images/Coupon_Banner.png',
-      'images/pre.png',
+      'images/ivites.png',
     ];
     return Scaffold(
       appBar: PreferredSize(
@@ -373,10 +374,11 @@ class _HomeScreenState extends State<HomeScreen> {
                                 fullscreenDialog: true,
                               ));
                               break;
-                            case 'images/pre.png':
-                              //以下のコードを修正
-                              launchUrl(
-                                  'https://sora-tokyo-dateplan.com/present_11');
+                            case 'images/ivites.png':
+                              Navigator.of(context).push(MaterialPageRoute(
+                                builder: (context) => InviteCodeScreen(),
+                                fullscreenDialog: true,
+                              ));
                               break;
                             default:
                               print('Unknown item tapped');
