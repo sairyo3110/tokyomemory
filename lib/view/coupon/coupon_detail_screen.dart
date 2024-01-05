@@ -5,8 +5,8 @@ import 'package:amplify_flutter/amplify_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:mapapp/amplifyconfiguration.dart';
 import 'package:mapapp/model/coupon_usage.dart';
-import 'package:mapapp/test/rerated_model.dart';
-import 'package:mapapp/view_model/coupon_usage_controller.dart';
+import 'package:mapapp/model/rerated_model.dart';
+import 'package:mapapp/repository/coupon_usage_controller.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class CouponDetailScreen extends StatefulWidget {
@@ -42,6 +42,27 @@ class _CouponDetailScreenState extends State<CouponDetailScreen> {
       _appBarHeight = max(45.0, 60.0 - offset); // スクロールに応じてAppBarの高さを変更
       _fontSize = max(10.0, 20.0 - offset); // スクロールに応じてフォントサイズを変更
     });
+  }
+
+  String formatTime(String? time) {
+    return (time != null && time.contains(':'))
+        ? time.split(':')[0] + ':' + time.split(':')[1]
+        : '';
+  }
+
+  String parseInt(String? value) {
+    if (value == null || value.isEmpty) {
+      return '更新中'; // Return '更新中' if the string is null or empty
+    }
+    // Try to parse the string as a double then convert to int
+    try {
+      var number = double.parse(value);
+      return number
+          .toInt()
+          .toString(); // Convert to int to remove decimal points
+    } catch (e) {
+      return '更新中'; // In case of error, return '更新中'
+    }
   }
 
   @override
@@ -270,10 +291,12 @@ class _CouponDetailScreenState extends State<CouponDetailScreen> {
                       ),
                       Row(
                         children: [
-                          Icon(
-                              size: 15.0, Icons.sunny), // Add your desired icon
+                          Icon(size: 15.0, Icons.sunny), // Desired icon
                           Text(
-                              ('${widget.coupon.dayStart}- ${widget.coupon.dayEnd}'),
+                              (widget.coupon.dayStart == null ||
+                                      widget.coupon.dayEnd == null)
+                                  ? '更新中'
+                                  : '${formatTime(widget.coupon.dayStart)} - ${formatTime(widget.coupon.dayEnd)}',
                               style: TextStyle(fontSize: 12)),
                         ],
                       ),
@@ -281,9 +304,13 @@ class _CouponDetailScreenState extends State<CouponDetailScreen> {
                         children: [
                           Icon(
                               size: 15.0,
-                              Icons.nightlight), // Add your desired icon
+                              Icons
+                                  .nightlight_round), // Another desired icon for night time
                           Text(
-                              ('${widget.coupon.nightStart}- ${widget.coupon.nightEnd}'),
+                              (widget.coupon.nightStart == null ||
+                                      widget.coupon.nightEnd == null)
+                                  ? '更新中'
+                                  : '${formatTime(widget.coupon.nightStart)} - ${formatTime(widget.coupon.nightEnd)}',
                               style: TextStyle(fontSize: 12)),
                         ],
                       ),
@@ -300,7 +327,10 @@ class _CouponDetailScreenState extends State<CouponDetailScreen> {
                           Icon(
                               size: 15.0, Icons.sunny), // Add your desired icon
                           Text(
-                              ('${widget.coupon.dayMin}- ${widget.coupon.dayMax}'),
+                              (widget.coupon.dayMin == null ||
+                                      widget.coupon.dayMax == null)
+                                  ? '更新中'
+                                  : '${parseInt(widget.coupon.dayMin)}円 - ${parseInt(widget.coupon.dayMax)}円',
                               style: TextStyle(fontSize: 12)),
                         ],
                       ),
@@ -310,7 +340,10 @@ class _CouponDetailScreenState extends State<CouponDetailScreen> {
                               size: 15.0,
                               Icons.nightlight), // Add your desired icon
                           Text(
-                              ('${widget.coupon.nightMin}- ${widget.coupon.nightMax}'),
+                              (widget.coupon.nightMin == null ||
+                                      widget.coupon.nightMax == null)
+                                  ? '更新中'
+                                  : '${parseInt(widget.coupon.nightMin)}円 - ${parseInt(widget.coupon.nightMax)}円',
                               style: TextStyle(fontSize: 12)),
                         ],
                       ),

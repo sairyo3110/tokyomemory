@@ -100,7 +100,7 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/webview_flutter_wkwebview/ios"
 
 SPEC CHECKSUMS:
-  amplify_auth_cognito: 8469ebad1b43b2c692c6b1fc0a182bbdbab934b1
+  amplify_auth_cognito: 76b5a54f05f66f69966b468b8121a0dd33a32c70
   amplify_secure_storage: 501cbdac671a050090d48dfcc002d5637d3f4a55
   device_info_plus: 7545d84d8d1b896cb16a4ff98c19f07ec4b298ea
   Flutter: f04841e97a9d0b0a8025694d0796dd46242b2854

@@ -2,9 +2,10 @@ import 'dart:io';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:mapapp/importer.dart';
 import 'package:mapapp/model/plan.dart';
-import 'package:mapapp/test/places_provider.dart';
-import 'package:mapapp/test/rerated_model.dart';
+import 'package:mapapp/provider/places_provider.dart';
+import 'package:mapapp/model/rerated_model.dart';
 import 'package:mapapp/view/spot/spot_detail_screen.dart';
 import 'package:share/share.dart';
 
@@ -20,13 +21,13 @@ class PlanDetailScreen extends StatefulWidget {
 class _PlanDetailScreenState extends State<PlanDetailScreen> {
   Future<List<PlaceDetail>>? futurePlaceDetails;
 
-  bool isAndroid = Platform.isAndroid;
-  bool isIOS = Platform.isIOS;
+  bool isAndroid = !kIsWeb && Platform.isAndroid; // WebではないかつAndroidの場合にtrue
+  bool isIOS = !kIsWeb && Platform.isIOS; // WebではないかつiOSの場合にtrue
 
   @override
   void initState() {
     super.initState();
-    PlacesProvider provider = PlacesProvider(context);
+    PlacesProvider provider = PlacesProvider();
     List<int> spotIds = [
       widget.plan.mainSpotId,
       widget.plan.lunchSpotId,
@@ -230,7 +231,8 @@ class _PlanDetailScreenState extends State<PlanDetailScreen> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => SpotDetailScreen(spot: place),
+                      builder: (context) =>
+                          SpotDetailScreen(parentContext: context, spot: place),
                     ),
                   );
                 }

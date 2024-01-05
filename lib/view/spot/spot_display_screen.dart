@@ -1,11 +1,15 @@
 import 'dart:async';
+import 'package:amplify_flutter/amplify_flutter.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
-import 'package:mapapp/component/map_search_box.dart';
-import 'package:mapapp/test/places_provider.dart';
-import 'package:mapapp/test/rerated_model.dart';
+import 'package:mapapp/component/bottan/favorite_bottan.dart';
+import 'package:mapapp/component/serachbox/map_search_box.dart';
+import 'package:mapapp/importer.dart';
+import 'package:mapapp/provider/PlaceChategories.dart';
+import 'package:mapapp/provider/places_provider.dart';
+import 'package:mapapp/model/rerated_model.dart';
 import 'package:mapapp/view/spot/spot_detail_screen.dart';
-import 'package:mapapp/view_model/map_controller_provider.dart';
+import 'package:mapapp/repository/map_controller_provider.dart';
 import 'package:mapbox_gl/mapbox_gl.dart';
 import 'package:provider/provider.dart';
 import 'package:geolocator/geolocator.dart';
@@ -17,6 +21,7 @@ class SpotDisplayScreen extends StatefulWidget {
   final String location; // 選択された場所
   final String price; // 選択された価格範囲
   final String category; // 選択されたカテゴリーID
+  final List<int>? filteredPlaceIds; // フィルタリングされた場所のIDのリスト
 
   const SpotDisplayScreen({
     super.key,
@@ -24,6 +29,7 @@ class SpotDisplayScreen extends StatefulWidget {
     required this.category,
     required this.location,
     required this.price,
+    this.filteredPlaceIds, // 新たに追加された引数
   });
 
   @override
@@ -41,6 +47,7 @@ class _SpotDisplayScreenState extends State<SpotDisplayScreen> {
   PageController pageController = PageController();
   bool _isDataLoaded = false;
   final String endpoint = 'places';
+  String? userid;
 
   final String _style = 'mapbox://styles/enplace/cllwj4gw4007q01rf90r18bdh';
   final double _initialZoom = 12.5;
@@ -49,6 +56,8 @@ class _SpotDisplayScreenState extends State<SpotDisplayScreen> {
   MapboxMapController? controller;
 
   PlaceDetail? _selectedPlace; // 選択されたPlaceを保存するための変数を追加
+
+  List<PlaceCategorySub> categorySubs = [];
 
   @override
   void dispose() {
@@ -64,50 +73,109 @@ class _SpotDisplayScreenState extends State<SpotDisplayScreen> {
   @override
   void initState() {
     super.initState();
-
+    _loadUserid();
     _showMap = widget.showMap;
+    _fetchCategoriesSub(); // カテゴリーサブリストを取得する
 
     _getLocation().then((position) {
       setState(() {
         _yourLocation = position;
-        Provider.of<PlacesProvider>(context, listen: false)
-            .fetchPlaceAllDetails(endpoint)
-            .then((data) {
-          // クーポンがある場所とない場所のリストを作成
-          List<PlaceDetail> spotsWithCoupons = [];
-          List<PlaceDetail> spotsWithoutCoupons = [];
 
-          for (var spot in data) {
-            if (spot.cCouponId != null && spot.cCouponId! > 0) {
-              spotsWithCoupons.add(spot);
-            } else {
-              spotsWithoutCoupons.add(spot);
-            }
-          }
-
-          // クーポンがある場所を距離でソート
-          spotsWithCoupons.sort(
-              (a, b) => _calculateDistance(a).compareTo(_calculateDistance(b)));
-
-          // クーポンがない場所を距離でソート
-          spotsWithoutCoupons.sort(
-              (a, b) => _calculateDistance(a).compareTo(_calculateDistance(b)));
-
-          // 両リストを結合して全体のリストを更新
-          setState(() {
-            spots
-              ..clear()
-              ..addAll(spotsWithCoupons)
-              ..addAll(spotsWithoutCoupons);
-            _isDataLoaded = true;
-            _filterSpots();
-          });
-        }).catchError((error) {
-          print('Error fetching places: $error');
-        });
+        // filteredPlaceIdsが提供されている場合、それに基づいてデータを取得
+        if (widget.filteredPlaceIds != null &&
+            widget.filteredPlaceIds!.isNotEmpty) {
+          _fetchFilteredPlaces(widget.filteredPlaceIds!);
+        } else {
+          // filteredPlaceIdsが提供されていない場合、全ての場所のデータを取得
+          _fetchAllPlaces();
+        }
       });
     }).catchError((error) {
       print('Error getting location: $error');
+    });
+  }
+
+  void _fetchCategoriesSub() async {
+    try {
+      categorySubs = await Provider.of<PlacesProvider>(context, listen: false)
+          .fetchPlaceCategoriesSub();
+    } catch (e) {
+      print("Error fetching category subs: $e");
+    }
+  }
+
+  void _fetchAllPlaces() {
+    Provider.of<PlacesProvider>(context, listen: false)
+        .fetchPlaceAllDetails(endpoint)
+        .then((data) {
+      // クーポンがある場所とない場所のリストを作成
+      List<PlaceDetail> spotsWithCoupons = [];
+      List<PlaceDetail> spotsWithoutCoupons = [];
+
+      for (var spot in data) {
+        if (spot.cCouponId != null && spot.cCouponId! > 0) {
+          spotsWithCoupons.add(spot);
+        } else {
+          spotsWithoutCoupons.add(spot);
+        }
+      }
+
+      // クーポンがある場所を距離でソート
+      spotsWithCoupons.sort(
+          (a, b) => _calculateDistance(a).compareTo(_calculateDistance(b)));
+
+      // クーポンがない場所を距離でソート
+      spotsWithoutCoupons.sort(
+          (a, b) => _calculateDistance(a).compareTo(_calculateDistance(b)));
+
+      // 両リストを結合して全体のリストを更新
+      setState(() {
+        spots
+          ..clear()
+          ..addAll(spotsWithCoupons)
+          ..addAll(spotsWithoutCoupons);
+        _isDataLoaded = true;
+        _filterSpots();
+      });
+    }).catchError((error) {
+      print('Error fetching places: $error');
+    });
+  }
+
+  void _fetchFilteredPlaces(List<int> placeIds) {
+    Provider.of<PlacesProvider>(context, listen: false)
+        .fetchFilteredPlaceDetails(placeIds)
+        .then((data) {
+      // クーポンがある場所とない場所のリストを作成
+      List<PlaceDetail> spotsWithCoupons = [];
+      List<PlaceDetail> spotsWithoutCoupons = [];
+
+      for (var spot in data) {
+        if (spot.cCouponId != null && spot.cCouponId! > 0) {
+          spotsWithCoupons.add(spot);
+        } else {
+          spotsWithoutCoupons.add(spot);
+        }
+      }
+
+      // クーポンがある場所を距離でソート
+      spotsWithCoupons.sort(
+          (a, b) => _calculateDistance(a).compareTo(_calculateDistance(b)));
+
+      // クーポンがない場所を距離でソート
+      spotsWithoutCoupons.sort(
+          (a, b) => _calculateDistance(a).compareTo(_calculateDistance(b)));
+      setState(() {
+        spots
+          ..clear()
+          ..addAll(spotsWithCoupons)
+          ..addAll(spotsWithoutCoupons);
+
+        _isDataLoaded = true;
+        _filterSpots();
+      });
+    }).catchError((error) {
+      print('Error fetching filtered places: $error');
     });
   }
 
@@ -133,34 +201,6 @@ class _SpotDisplayScreenState extends State<SpotDisplayScreen> {
       bool categoryMatch = true;
       bool locationMatch = true;
       bool priceMatch = true;
-
-      // カテゴリIDに基づくフィルタリング
-      if (widget.category.isNotEmpty) {
-        try {
-          int filterCategoryId = int.parse(widget.category);
-          categoryMatch = spot.subcategoryId == filterCategoryId;
-          // ignore: empty_catches
-        } catch (e) {}
-      }
-
-      // 位置に基づくフィルタリング
-      if (widget.location.isNotEmpty) {
-        locationMatch = spot.address!.contains(widget.location);
-      }
-
-      // 価格に基づくフィルタリング
-      if (widget.price.isNotEmpty) {
-        try {
-          RangeValues? priceRange = extractPriceRange(widget.price);
-          if (priceRange != null && spot.price!.isNotEmpty) {
-            int spotPrice = int.parse(spot.price!
-                .replaceAll(RegExp(r'[^0-9]'), '')); // 価格文字列から数字だけを取り出す
-            priceMatch =
-                spotPrice >= priceRange.start && spotPrice <= priceRange.end;
-          }
-          // ignore: empty_catches
-        } catch (e) {}
-      }
       // 選択されたPlaceに基づくフィルタリング
       if (_selectedPlace != null) {
         // ignore: iterable_contains_unrelated_type
@@ -170,8 +210,21 @@ class _SpotDisplayScreenState extends State<SpotDisplayScreen> {
       if (categoryMatch && locationMatch && priceMatch) {
         filteredSpots.add(spot);
       }
+      print("Filtered spots count: ${filteredSpots.length}");
       return !(categoryMatch && locationMatch && priceMatch);
     });
+  }
+
+  Future<void> _loadUserid() async {
+    try {
+      AuthUser authUser = await Amplify.Auth.getCurrentUser();
+      setState(() {
+        userid = authUser.userId;
+        print('User ID: $userid');
+      });
+    } catch (e) {
+      print('Error fetching user: $e');
+    }
   }
 
   @override
@@ -230,13 +283,20 @@ class _SpotDisplayScreenState extends State<SpotDisplayScreen> {
                                   0 ||
                               double.tryParse(spot.nightMax ?? '0')?.toInt() !=
                                   0;
+                      String categoryName = categorySubs
+                          .firstWhere(
+                              (categorySub) =>
+                                  categorySub.categoryId == spot.subcategoryId,
+                              orElse: () => PlaceCategorySub(
+                                  categoryId: 0, name: '', parentCategoryId: 0))
+                          .name;
                       return InkWell(
                         onTap: () {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) =>
-                                  SpotDetailScreen(spot: spot),
+                              builder: (context) => SpotDetailScreen(
+                                  parentContext: context, spot: spot),
                             ),
                           );
                         },
@@ -247,26 +307,22 @@ class _SpotDisplayScreenState extends State<SpotDisplayScreen> {
                           ),
                           elevation: 3.0, // 影を付ける
                           child: Padding(
-                            padding: EdgeInsets.all(10.0), // カード内のパディング
+                            padding: EdgeInsets.only(left: 10), // 左側にのみパディングを適用
                             child: Row(
                               children: <Widget>[
                                 SizedBox(
-                                  width: 170.0, // 画像の幅
-                                  height: 120.0, // 画像の高さ
-                                  child: Image.network(
-                                    'https://mymapapp.s3.ap-northeast-1.amazonaws.com/spot/${spot.imageUrl}/1.png',
-                                    fit: BoxFit.cover, // Image covers the box
-                                    errorBuilder: (BuildContext context,
-                                        Object exception,
-                                        StackTrace? stackTrace) {
-                                      // If the image fails to load, this builder will work to show the placeholder
-                                      return Image.asset(
-                                        'images/noimage.png',
-                                        fit: BoxFit
-                                            .cover, // Placeholder image covers the box
-                                      );
-                                    },
-                                  ),
+                                  width: 140.0, // 画像の幅
+                                  height: 140.0, // 画像の高さ
+                                  child: (spot.imageUrl?.isEmpty ?? true)
+                                      ? Image(
+                                          image:
+                                              AssetImage('images/noimage.png'),
+                                          fit: BoxFit.cover,
+                                        )
+                                      : Image.network(
+                                          'https://mymapapp.s3.ap-northeast-1.amazonaws.com/spot/${spot.imageUrl}/1.png',
+                                          fit: BoxFit.cover,
+                                        ),
                                 ),
                                 Expanded(
                                   child: Container(
@@ -276,35 +332,74 @@ class _SpotDisplayScreenState extends State<SpotDisplayScreen> {
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
                                         children: [
-                                          Text(
-                                            spot.name ?? '',
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.bold,
-                                            ),
+                                          Row(
+                                            children: <Widget>[
+                                              Expanded(
+                                                child: Text(
+                                                  spot.name ?? '',
+                                                  style: TextStyle(
+                                                    fontSize: 14,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                  overflow: TextOverflow
+                                                      .ellipsis, // タイトルが長い場合は省略記号を表示
+                                                ),
+                                              ),
+                                              if (!kIsWeb)
+                                                FavoriteIconWidget(
+                                                  userId: userid,
+                                                  placeId: spot.placeId ??
+                                                      0, // 実際の場所IDを設定する
+                                                  isFavorite:
+                                                      false, // お気に入り状態を設定する
+                                                ),
+                                            ],
                                           ),
                                           Column(
                                             crossAxisAlignment:
                                                 CrossAxisAlignment.start,
                                             children: [
-                                              SizedBox(height: 10),
-                                              Container(
-                                                padding: EdgeInsets.symmetric(
-                                                    horizontal: 7.0,
-                                                    vertical: 3.0),
-                                                decoration: BoxDecoration(
-                                                  color: Color(0xFFF6E6DC),
-                                                  borderRadius:
-                                                      BorderRadius.circular(
-                                                          5.0),
+                                              Row(children: <Widget>[
+                                                Container(
+                                                  padding: EdgeInsets.symmetric(
+                                                      horizontal: 8.0,
+                                                      vertical: 4.0),
+                                                  decoration: BoxDecoration(
+                                                    color: Color(0xFFF6E6DC),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            5.0),
+                                                  ),
+                                                  child: Text(
+                                                    categoryName,
+                                                    style: TextStyle(
+                                                        fontSize: 10,
+                                                        color: Colors.black),
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                  ),
                                                 ),
-                                                child: Text(
-                                                  (spot.pcsName ?? ''),
-                                                  style: TextStyle(
-                                                      fontSize: 8,
-                                                      color: Colors.black),
-                                                ),
-                                              ),
+                                                SizedBox(width: 10),
+                                                if ((spot.cCouponId ?? 0) != 0)
+                                                  Container(
+                                                    padding:
+                                                        EdgeInsets.symmetric(
+                                                            horizontal: 8.0,
+                                                            vertical: 4.0),
+                                                    decoration: BoxDecoration(
+                                                      color: Colors.red,
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              5.0),
+                                                    ),
+                                                    child: Text(
+                                                      'クーポン',
+                                                      style: TextStyle(
+                                                          fontSize: 10,
+                                                          color: Colors.white),
+                                                    ),
+                                                  ),
+                                              ]),
                                               SizedBox(height: 10),
                                               Text(
                                                 '${spot.city}/${spot.nearestStation}',
@@ -352,31 +447,6 @@ class _SpotDisplayScreenState extends State<SpotDisplayScreen> {
                                                     ),
                                                   ],
                                                 ),
-                                              if ((spot.cCouponId ?? 0) != 0)
-                                                Column(
-                                                  children: [
-                                                    SizedBox(height: 5),
-                                                    Container(
-                                                      padding:
-                                                          EdgeInsets.symmetric(
-                                                              horizontal: 8.0,
-                                                              vertical: 4.0),
-                                                      decoration: BoxDecoration(
-                                                        color: Colors.red,
-                                                        borderRadius:
-                                                            BorderRadius
-                                                                .circular(5.0),
-                                                      ),
-                                                      child: Text(
-                                                        'クーポン',
-                                                        style: TextStyle(
-                                                            fontSize: 10,
-                                                            color:
-                                                                Colors.white),
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
                                               SizedBox(height: 30),
                                             ],
                                           ),
@@ -395,7 +465,7 @@ class _SpotDisplayScreenState extends State<SpotDisplayScreen> {
               left: 0,
               right: 0,
               bottom: 0,
-              height: MediaQuery.of(context).size.height * 0.26,
+              height: MediaQuery.of(context).size.height * 0.28,
               child: PageView.builder(
                 controller: pageController,
                 onPageChanged: (value) {
@@ -423,72 +493,102 @@ class _SpotDisplayScreenState extends State<SpotDisplayScreen> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) =>
-                                  SpotDetailScreen(spot: spot),
+                              builder: (context) => SpotDetailScreen(
+                                  parentContext: context, spot: spot),
                             ),
                           );
                         },
                         child: Padding(
-                            padding: EdgeInsets.all(10.0), // カード内のパディング
+                            padding: EdgeInsets.only(left: 30), // 左側にのみパディングを適用
                             child: Row(children: <Widget>[
                               SizedBox(
                                 width: MediaQuery.of(context).size.width *
-                                    0.4, // 画像の幅を画面幅の30%に設定
+                                    0.3, // 画像の幅を画面幅の30%に設定
                                 height: MediaQuery.of(context).size.height *
                                     0.14, // 画像の高さを画面高の20%に設定
-                                child: Image.network(
-                                  'https://mymapapp.s3.ap-northeast-1.amazonaws.com/spot/${spot.imageUrl}/1.png',
-                                  fit: BoxFit.cover, // Image covers the box
-                                  errorBuilder: (BuildContext context,
-                                      Object exception,
-                                      StackTrace? stackTrace) {
-                                    // If the image fails to load, this builder will work to show the placeholder
-                                    return Image.asset(
-                                      'images/noimage.png',
-                                      fit: BoxFit
-                                          .cover, // Placeholder image covers the box
-                                    );
-                                  },
-                                ),
+                                child: (spot.imageUrl?.isEmpty ?? true)
+                                    ? Image(
+                                        image: AssetImage('images/noimage.png'),
+                                        fit: BoxFit.cover,
+                                      )
+                                    : Image.network(
+                                        'https://mymapapp.s3.ap-northeast-1.amazonaws.com/spot/${spot.imageUrl}/1.png',
+                                        fit: BoxFit.cover,
+                                      ),
                               ),
                               Expanded(
                                 child: Container(
                                   padding: EdgeInsets.symmetric(
-                                      horizontal: 10.0), // テキストセクションのパディング
+                                      horizontal: 20.0), // テキストセクションのパディング
                                   child: Column(
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
-                                        Text(
-                                          spot.name ?? '',
-                                          style: TextStyle(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                          overflow: TextOverflow.ellipsis,
+                                        Row(
+                                          children: <Widget>[
+                                            Expanded(
+                                              child: Text(
+                                                spot.name ?? '',
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                                overflow: TextOverflow
+                                                    .ellipsis, // タイトルが長い場合は省略記号を表示
+                                              ),
+                                            ),
+                                            FavoriteIconWidget(
+                                              userId: userid,
+                                              placeId: spot.placeId ??
+                                                  0, // 実際の場所IDを設定する
+                                              isFavorite: false, // お気に入り状態を設定する
+                                            ),
+                                          ],
                                         ),
                                         Column(
                                           crossAxisAlignment:
                                               CrossAxisAlignment.start,
                                           children: [
-                                            SizedBox(height: 10),
-                                            Container(
-                                              padding: EdgeInsets.symmetric(
-                                                  horizontal: 7.0,
-                                                  vertical: 3.0),
-                                              decoration: BoxDecoration(
-                                                color: Color(0xFFF6E6DC),
-                                                borderRadius:
-                                                    BorderRadius.circular(5.0),
+                                            Row(children: <Widget>[
+                                              Container(
+                                                padding: EdgeInsets.symmetric(
+                                                    horizontal: 8.0,
+                                                    vertical: 4.0),
+                                                decoration: BoxDecoration(
+                                                  color: Color(0xFFF6E6DC),
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                          5.0),
+                                                ),
+                                                child: Text(
+                                                  (spot.pcsName ?? '更新中'),
+                                                  style: TextStyle(
+                                                      fontSize: 10,
+                                                      color: Colors.black),
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                ),
                                               ),
-                                              child: Text(
-                                                (spot.pcsName ?? ''),
-                                                style: TextStyle(
-                                                    fontSize: 8,
-                                                    color: Colors.black),
-                                                overflow: TextOverflow.ellipsis,
-                                              ),
-                                            ),
+                                              SizedBox(width: 10),
+                                              if ((spot.cCouponId ?? 0) != 0)
+                                                Container(
+                                                  padding: EdgeInsets.symmetric(
+                                                      horizontal: 8.0,
+                                                      vertical: 4.0),
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.red,
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            5.0),
+                                                  ),
+                                                  child: Text(
+                                                    'クーポン',
+                                                    style: TextStyle(
+                                                        fontSize: 10,
+                                                        color: Colors.white),
+                                                  ),
+                                                ),
+                                            ]),
                                             SizedBox(height: 10),
                                             Text(
                                               (spot.city ?? '') +
@@ -515,45 +615,29 @@ class _SpotDisplayScreenState extends State<SpotDisplayScreen> {
                                             ),
                                             SizedBox(height: 5),
                                             if (shouldDisplayRow)
-                                              Text(
-                                                (double.tryParse(spot.dayMin ??
-                                                                    '0')
-                                                                ?.toInt() ==
-                                                            0 &&
-                                                        double.tryParse(
-                                                                    spot.dayMax ??
-                                                                        '0')
-                                                                ?.toInt() ==
-                                                            0)
-                                                    ? '${double.tryParse(spot.nightMin ?? '0')?.toInt()}円 - ${double.tryParse(spot.nightMax ?? '0')?.toInt()}円'
-                                                    : '${double.tryParse(spot.dayMin ?? '0')?.toInt()}円 - ${double.tryParse(spot.dayMax ?? '0')?.toInt()}円',
-                                                style: TextStyle(fontSize: 10),
-                                              ),
-                                            if ((spot.cCouponId ?? 0) != 0)
-                                              Column(
+                                              Row(
                                                 children: [
-                                                  SizedBox(height: 5),
-                                                  Container(
-                                                    padding:
-                                                        EdgeInsets.symmetric(
-                                                            horizontal: 8.0,
-                                                            vertical: 4.0),
-                                                    decoration: BoxDecoration(
-                                                      color: Colors.red,
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                              5.0),
-                                                    ),
-                                                    child: Text(
-                                                      'クーポン',
-                                                      style: TextStyle(
-                                                          fontSize: 10,
-                                                          color: Colors.white),
-                                                    ),
+                                                  Icon(
+                                                      size: 15.0,
+                                                      Icons
+                                                          .currency_yen), // Add your desired icon
+                                                  Text(
+                                                    (double.tryParse(spot.dayMin ??
+                                                                        '0')
+                                                                    ?.toInt() ==
+                                                                0 &&
+                                                            double.tryParse(
+                                                                        spot.dayMax ??
+                                                                            '0')
+                                                                    ?.toInt() ==
+                                                                0)
+                                                        ? '${double.tryParse(spot.nightMin ?? '0')?.toInt()}円 - ${double.tryParse(spot.nightMax ?? '0')?.toInt()}円'
+                                                        : '${double.tryParse(spot.dayMin ?? '0')?.toInt()}円 - ${double.tryParse(spot.dayMax ?? '0')?.toInt()}円',
+                                                    style:
+                                                        TextStyle(fontSize: 10),
                                                   ),
                                                 ],
                                               ),
-                                            SizedBox(height: 30),
                                           ],
                                         ),
                                       ]),
@@ -588,13 +672,10 @@ class _SpotDisplayScreenState extends State<SpotDisplayScreen> {
                         controller: _searchController,
                         onPlaceSelected: (selectedPlace) {
                           setState(() {
-                            _selectedPlace =
-                                selectedPlace as PlaceDetail?; // 選択されたPlaceを保存
+                            _selectedPlace = selectedPlace as PlaceDetail?;
                             _filterSpots();
                             addImageAndMarkers(spots);
-
                             if (selectedPlace != null && controller != null) {
-                              // 選択された場所にカメラを移動
                               Future.delayed(Duration(milliseconds: 500), () {
                                 controller!.animateCamera(
                                     CameraUpdate.newLatLngZoom(
@@ -606,7 +687,6 @@ class _SpotDisplayScreenState extends State<SpotDisplayScreen> {
                                         16.0));
                               });
                             } else {
-                              // selectedPlaceがnullの場合、_reloadScreen関数を呼び出す
                               _reloadScreen(context);
                             }
                           });
@@ -614,36 +694,38 @@ class _SpotDisplayScreenState extends State<SpotDisplayScreen> {
                       ),
                     ),
                     SizedBox(width: 10),
-                    FloatingActionButton(
-                      mini: true,
-                      onPressed: () {
-                        setState(() {
-                          _showMap = !_showMap;
-                        });
-                        if (_showMap && controller != null) {
-                          // _showMapがtrueに変更された場合にのみマーカーを再設定
-                          addImageAndMarkers(spots);
+                    if (!kIsWeb)
+                      FloatingActionButton(
+                        mini: true,
+                        onPressed: () {
+                          setState(() {
+                            _showMap = !_showMap;
+                          });
+                          if (_showMap && controller != null) {
+                            // _showMapがtrueに変更された場合にのみマーカーを再設定
+                            addImageAndMarkers(spots);
 
-                          if (_selectedPlace != null) {
-                            Future.delayed(Duration(milliseconds: 500), () {
-                              controller!.animateCamera(
-                                  CameraUpdate.newLatLngZoom(
-                                      LatLng(
-                                          _selectedPlace!.paLatitude as double,
-                                          _selectedPlace!.paLongitude
-                                              as double),
-                                      16.0));
-                            });
+                            if (_selectedPlace != null) {
+                              Future.delayed(Duration(milliseconds: 500), () {
+                                controller!.animateCamera(
+                                    CameraUpdate.newLatLngZoom(
+                                        LatLng(
+                                            _selectedPlace!.paLatitude
+                                                as double,
+                                            _selectedPlace!.paLongitude
+                                                as double),
+                                        16.0));
+                              });
+                            }
                           }
-                        }
-                      },
-                      child: Icon(
-                        _showMap ? Icons.list : Icons.map,
-                        color: Colors.black, // アイコンの色を赤に設定
+                        },
+                        child: Icon(
+                          _showMap ? Icons.list : Icons.map,
+                          color: Colors.black, // アイコンの色を赤に設定
+                        ),
+                        backgroundColor: Color(0xFFF6E6DC), // 背景色を緑に設定
+                        tooltip: 'Toggle View',
                       ),
-                      backgroundColor: Color(0xFFF6E6DC), // 背景色を緑に設定
-                      tooltip: 'Toggle View',
-                    ),
                   ],
                 ),
               ]),

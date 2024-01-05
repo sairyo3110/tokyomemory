@@ -1,21 +1,23 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 
-import 'package:mapapp/test/places_provider.dart';
-import 'package:mapapp/test/rerated_model.dart';
-import 'package:mapapp/view/spot/spot_detail_screen.dart';
+import 'package:mapapp/provider/places_provider.dart';
+import 'package:mapapp/model/rerated_model.dart';
 
-class SearchBox extends StatefulWidget {
+class MapSearchBox extends StatefulWidget {
   final TextEditingController controller;
+  final Function(PlaceDetail?) onPlaceSelected;
 
-  const SearchBox({super.key, required this.controller});
+  MapSearchBox({
+    required this.controller,
+    required this.onPlaceSelected,
+  });
 
   @override
-  // ignore: library_private_types_in_public_api
-  _SearchBoxState createState() => _SearchBoxState();
+  _MapSearchBoxState createState() => _MapSearchBoxState();
 }
 
-class _SearchBoxState extends State<SearchBox> {
+class _MapSearchBoxState extends State<MapSearchBox> {
   List<PlaceDetail> _searchResults = [];
   bool _isLoading = false;
   OverlayEntry? _overlayEntry;
@@ -25,7 +27,7 @@ class _SearchBoxState extends State<SearchBox> {
   @override
   void initState() {
     super.initState();
-    _placesProvider = PlacesProvider(context);
+    _placesProvider = PlacesProvider();
   }
 
   @override
@@ -71,29 +73,24 @@ class _SearchBoxState extends State<SearchBox> {
     if (_overlayEntry != null) {
       _removeOverlay();
     }
-
     _overlayEntry = OverlayEntry(
       builder: (context) => Positioned(
-        top: 130.0,
+        top: 125.0,
         left: 0.0,
         right: 0.0,
         bottom: 0.0,
         child: Material(
           child: Container(
+            color: Color(0xFF444440),
             child: ListView.builder(
               itemCount: _searchResults.length,
               itemBuilder: (context, index) {
                 final place = _searchResults[index];
                 return ListTile(
                   title: Text(place.name ?? ''),
-                  subtitle: Text(place.address ?? ''),
+                  subtitle: Text(place.city ?? ''),
                   onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => SpotDetailScreen(spot: place),
-                      ),
-                    );
+                    widget.onPlaceSelected(place);
                     _removeOverlay();
                   },
                 );
@@ -129,18 +126,16 @@ class _SearchBoxState extends State<SearchBox> {
                     ),
                     decoration: InputDecoration(
                       labelText: 'エリア・施設名・キーワード',
-                      labelStyle: TextStyle(
-                        color: Color(0xFFF6E6DC), // ラベル（プレースホルダー）の色
-                      ),
                       suffixIcon: widget.controller.text.isNotEmpty
                           ? IconButton(
-                              icon: const Icon(Icons.clear),
+                              icon: Icon(Icons.clear),
                               onPressed: () {
                                 setState(() {
                                   widget.controller.clear();
                                   _searchResults.clear();
-                                  _removeOverlay();
                                 });
+                                widget.onPlaceSelected(null);
+                                _removeOverlay();
                               },
                             )
                           : null,
@@ -166,7 +161,7 @@ class _SearchBoxState extends State<SearchBox> {
             ),
           ],
         ),
-        if (_isLoading) const Center(child: CircularProgressIndicator()),
+        if (_isLoading) Center(child: CircularProgressIndicator()),
       ],
     );
   }

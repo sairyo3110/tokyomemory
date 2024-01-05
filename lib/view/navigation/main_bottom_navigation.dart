@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:mapapp/view/article/article_view.dart';
-import 'package:mapapp/view_model/map_controller_provider.dart';
+import 'package:mapapp/view/coupon/coupon_list_screen.dart';
+import 'package:mapapp/view/user/profile_settings_screen.dart';
+import 'package:mapapp/repository/map_controller_provider.dart';
 import 'package:provider/provider.dart';
 import '../home/home_screen.dart';
-import '../user/profile_settings_screen.dart';
 
 class MainBottomNavigation extends StatefulWidget {
+  final Function(int)? onNavigateToTab; // タブへのナビゲーションを管理するためのコールバック
+
+  MainBottomNavigation({Key? key, this.onNavigateToTab}) : super(key: key);
+
   @override
   _MainBottomNavigationState createState() => _MainBottomNavigationState();
 }
@@ -22,6 +27,11 @@ class _MainBottomNavigationState extends State<MainBottomNavigation> {
   final List<Widget> _pages = [
     HomeScreen(),
     ArticleView(),
+    CouponListScreen(
+      category: '',
+      location: '',
+      price: '',
+    ),
     UserInfoScreen(),
   ];
 
@@ -37,6 +47,17 @@ class _MainBottomNavigationState extends State<MainBottomNavigation> {
     }
   }
 
+  void navigateToTab(int index) {
+    if (_navigatorKeys[index].currentState != null) {
+      _navigatorKeys[index].currentState!.popUntil((route) => route.isFirst);
+    }
+    if (_selectedIndex != index) {
+      setState(() {
+        _selectedIndex = index;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
@@ -46,14 +67,20 @@ class _MainBottomNavigationState extends State<MainBottomNavigation> {
             index: _selectedIndex,
             children: _pages.map((page) {
               int index = _pages.indexOf(page);
-              return Navigator(
-                key: _navigatorKeys[index],
-                onGenerateRoute: (routeSettings) {
-                  return MaterialPageRoute(
-                    builder: (context) => page,
-                  );
-                },
-              );
+              if (index < _navigatorKeys.length) {
+                // GlobalKeyが存在する場合は、Navigatorを使用する
+                return Navigator(
+                  key: _navigatorKeys[index],
+                  onGenerateRoute: (routeSettings) {
+                    return MaterialPageRoute(
+                      builder: (context) => page,
+                    );
+                  },
+                );
+              } else {
+                // GlobalKeyが存在しない場合は、Navigatorを使用せずにページを直接返す
+                return page;
+              }
             }).toList(),
           ),
           bottomNavigationBar: BottomNavigationBar(
@@ -65,6 +92,10 @@ class _MainBottomNavigationState extends State<MainBottomNavigation> {
               BottomNavigationBarItem(
                 icon: Icon(Icons.list),
                 label: '特集記事',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.confirmation_number),
+                label: 'クーポン',
               ),
               BottomNavigationBarItem(
                 icon: Icon(Icons.settings),
@@ -79,7 +110,3 @@ class _MainBottomNavigationState extends State<MainBottomNavigation> {
         ));
   }
 }
-
-void main() => runApp(MaterialApp(
-      home: MainBottomNavigation(),
-    ));

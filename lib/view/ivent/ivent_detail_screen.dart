@@ -4,7 +4,7 @@ import 'package:amplify_flutter/amplify_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:mapapp/model/clickinfo.dart';
 import 'package:mapapp/repository/clickInfo_controller.dart';
-import 'package:mapapp/test/rerated_model.dart';
+import 'package:mapapp/model/rerated_model.dart';
 import 'package:mapapp/view/coupon/coupon_detail_screen.dart';
 import 'package:share/share.dart';
 import 'package:url_launcher/url_launcher.dart';

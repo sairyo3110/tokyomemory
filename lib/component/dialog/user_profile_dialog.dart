@@ -2,7 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:amplify_auth_cognito/amplify_auth_cognito.dart';
 import 'package:amplify_flutter/amplify_flutter.dart';
-import 'package:mapapp/component/user_ivitesincode_dialog.dart';
+import 'package:mapapp/component/dialog/user_ivitesincode_dialog.dart';
 
 class UserProfileUpdateDialog extends StatefulWidget {
   final BuildContext parentContext;

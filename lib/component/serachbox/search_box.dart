@@ -1,34 +1,37 @@
+import 'package:flutter/material.dart';
 import 'dart:async';
 
-import 'package:flutter/material.dart';
-import 'package:mapapp/test/places_provider.dart';
-import 'package:mapapp/test/rerated_model.dart';
+import 'package:mapapp/provider/places_provider.dart';
+import 'package:mapapp/model/rerated_model.dart';
+import 'package:mapapp/view/spot/spot_detail_screen.dart';
 
-class CouponSearchBox extends StatefulWidget {
+class SearchBox extends StatefulWidget {
   final TextEditingController controller;
 
-  CouponSearchBox({required this.controller});
+  const SearchBox({super.key, required this.controller});
 
   @override
-  _CouponSearchBoxState createState() => _CouponSearchBoxState();
+  // ignore: library_private_types_in_public_api
+  _SearchBoxState createState() => _SearchBoxState();
 }
 
-class _CouponSearchBoxState extends State<CouponSearchBox> {
+class _SearchBoxState extends State<SearchBox> {
   List<PlaceDetail> _searchResults = [];
   bool _isLoading = false;
+  OverlayEntry? _overlayEntry;
   Timer? _debounceTimer;
   late PlacesProvider _placesProvider;
 
   @override
   void initState() {
     super.initState();
-    _placesProvider = PlacesProvider(context);
+    _placesProvider = PlacesProvider();
   }
 
   @override
   void dispose() {
     _debounceTimer?.cancel();
-
+    _removeOverlay();
     super.dispose();
   }
 
@@ -39,6 +42,7 @@ class _CouponSearchBoxState extends State<CouponSearchBox> {
 
     _debounceTimer = Timer(Duration(milliseconds: 500), () async {
       if (value.trim().isEmpty) {
+        _removeOverlay();
         return;
       }
 
@@ -52,6 +56,7 @@ class _CouponSearchBoxState extends State<CouponSearchBox> {
         setState(() {
           _searchResults = places;
         });
+        _showOverlay(context);
       } catch (e) {
         print("Error fetching places: $e");
       } finally {
@@ -60,6 +65,53 @@ class _CouponSearchBoxState extends State<CouponSearchBox> {
         });
       }
     });
+  }
+
+  void _showOverlay(BuildContext context) {
+    if (_overlayEntry != null) {
+      _removeOverlay();
+    }
+
+    _overlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        top: 130.0,
+        left: 0.0,
+        right: 0.0,
+        bottom: 0.0,
+        child: Material(
+          child: Container(
+            child: ListView.builder(
+              itemCount: _searchResults.length,
+              itemBuilder: (context, index) {
+                final place = _searchResults[index];
+                return ListTile(
+                  title: Text(place.name ?? ''),
+                  subtitle: Text(place.address ?? ''),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => SpotDetailScreen(
+                          spot: place,
+                          parentContext: context,
+                        ),
+                      ),
+                    );
+                    _removeOverlay();
+                  },
+                );
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+    Overlay.of(context).insert(_overlayEntry!);
+  }
+
+  void _removeOverlay() {
+    _overlayEntry?.remove();
+    _overlayEntry = null;
   }
 
   @override
@@ -85,11 +137,12 @@ class _CouponSearchBoxState extends State<CouponSearchBox> {
                       ),
                       suffixIcon: widget.controller.text.isNotEmpty
                           ? IconButton(
-                              icon: Icon(Icons.clear),
+                              icon: const Icon(Icons.clear),
                               onPressed: () {
                                 setState(() {
                                   widget.controller.clear();
                                   _searchResults.clear();
+                                  _removeOverlay();
                                 });
                               },
                             )
@@ -116,7 +169,7 @@ class _CouponSearchBoxState extends State<CouponSearchBox> {
             ),
           ],
         ),
-        if (_isLoading) Center(child: CircularProgressIndicator()),
+        if (_isLoading) const Center(child: CircularProgressIndicator()),
       ],
     );
   }

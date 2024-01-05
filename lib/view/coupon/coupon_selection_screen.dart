@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:mapapp/test/PlaceChategories.dart';
-import 'package:mapapp/test/places_provider.dart';
-import 'package:mapapp/test/rerated_model.dart';
+import 'package:mapapp/provider/PlaceChategories.dart';
+import 'package:mapapp/provider/places_provider.dart';
+import 'package:mapapp/model/rerated_model.dart';
 
 class CouponSelectionScreen extends StatefulWidget {
   @override
@@ -54,7 +54,7 @@ class _CouponSelectionScreenState extends State<CouponSelectionScreen> {
 
   Future<void> _fetchCategories() async {
     try {
-      var provider = PlacesProvider(context); // PlacesProvider のインスタンスを作成
+      var provider = PlacesProvider(); // PlacesProvider のインスタンスを作成
       var categories = await provider.fetchPlaceCategories();
       setState(() {
         _categories = categories;

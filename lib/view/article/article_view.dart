@@ -1,17 +1,8 @@
-import 'dart:convert';
-import 'dart:math';
-import 'dart:typed_data';
+export 'package:amplify_flutter/amplify_flutter.dart';
 
-import 'package:amplify_flutter/amplify_flutter.dart';
 import 'package:flutter/material.dart';
-import 'package:mapapp/model/clickinfo2.dart';
-import 'package:mapapp/repository/clickInfo_controller2.dart';
-import 'package:mapapp/test/places_provider.dart';
-import 'package:mapapp/test/rerated_model.dart';
-import 'package:mapapp/view/coupon/coupon_detail_screen.dart';
-import 'package:mapapp/view/ivent/ivent_display_screen.dart';
-import 'package:universal_html/controller.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:mapapp/importer.dart';
+import 'package:mapapp/view/article/article_view.dart';
 
 class ArticleView extends StatefulWidget {
   @override
@@ -128,7 +119,7 @@ class _ArticleViewState extends State<ArticleView> {
 
   Future<void> _fetchCoupons() async {
     try {
-      PlacesProvider placesProvider = PlacesProvider(context);
+      PlacesProvider placesProvider = PlacesProvider();
       List<PlaceDetail> fetchedCoupons =
           await placesProvider.fetchPlaceAllDetails('coupons');
 
@@ -156,6 +147,7 @@ class _ArticleViewState extends State<ArticleView> {
       appBar: PreferredSize(
         preferredSize: Size.fromHeight(_appBarHeight), // AppBarの縦幅を100.0に設定
         child: AppBar(
+          backgroundColor: Color(0xFF444440),
           title: Container(
             padding: EdgeInsets.all(8.0), // 余白を追加
             alignment: _alignment, // alignmentを動的に設定
@@ -193,7 +185,7 @@ class _ArticleViewState extends State<ArticleView> {
                 children: [
                   SizedBox(height: 10.0), // 上に10.0の余白を追加
                   Text(
-                    '12月イベント情報',
+                    '招待キャンペーン',
                     style: TextStyle(
                       color: Color(0xFFF6E6DC),
                       fontSize: 20, // 文字サイズを40.0に設定
@@ -204,15 +196,32 @@ class _ArticleViewState extends State<ArticleView> {
               ),
             ),
             InkWell(
-              onTap: () {
-                Navigator.of(context).push(MaterialPageRoute(
-                  builder: (context) => IventDisplayScreen(
-                    showMap: false,
-                    category: '',
-                    location: '',
-                    price: '',
-                  ),
-                ));
+              onTap: () async {
+                final String? userid = await getCurrentUserId();
+                if (userid == null) {
+                  // ユーザーIDがない場合、ダイアログを表示
+                  showDialog(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: Text('保存機能を使うには会員登録が必要です。'),
+                      content: Text('マイページのログインボタンから会員登録を行ってください。'),
+                      actions: <Widget>[
+                        TextButton(
+                          child: Text('OK'),
+                          onPressed: () {
+                            Navigator.of(context).pop(); // ダイアログを閉じる
+                          },
+                        ),
+                      ],
+                    ),
+                  );
+                } else {
+                  // ユーザーIDがある場合、InviteCodeScreenにナビゲート
+                  Navigator.of(context).push(MaterialPageRoute(
+                    builder: (context) => InviteCodeScreen(),
+                    fullscreenDialog: true,
+                  ));
+                }
               },
               child: Card(
                 clipBehavior: Clip.antiAlias,
@@ -231,7 +240,7 @@ class _ArticleViewState extends State<ArticleView> {
                         // This widget rounds the corners of the image
                         borderRadius: BorderRadius.circular(12),
                         child: Image.asset(
-                          'images/12ivent.png',
+                          'images/ivites.png',
                           width: 325,
                           fit: BoxFit
                               .cover, // Set the image to fit the Container
@@ -241,7 +250,7 @@ class _ArticleViewState extends State<ArticleView> {
                     Padding(
                       padding: EdgeInsets.all(10.0),
                       child: Text(
-                        '東京で開催される12月のイベント情報まとめました！',
+                        '豪華景品が当たる招待キャンペーン実施中！',
                         style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w900,

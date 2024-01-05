@@ -1,24 +1,45 @@
 import 'package:amplify_flutter/amplify_flutter.dart';
 import 'package:flutter/material.dart';
+import 'package:mapapp/component/bottan/favorite_bottan.dart';
+import 'package:mapapp/importer.dart';
 import 'package:mapapp/model/clickinfo.dart';
 import 'package:mapapp/repository/clickInfo_controller.dart';
-import 'package:mapapp/test/rerated_model.dart';
+import 'package:mapapp/model/rerated_model.dart';
 import 'package:mapapp/view/coupon/coupon_detail_screen.dart';
 import 'package:share/share.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:io' show Platform;
 
+class SpotDetailScreen extends StatefulWidget {
+  final BuildContext parentContext;
+  final PlaceDetail spot;
+
+  SpotDetailScreen({required this.parentContext, required this.spot});
+
+  @override
+  _SpotDetailScreenState createState() => _SpotDetailScreenState(spot);
+}
+
 // ignore: must_be_immutable
-class SpotDetailScreen extends StatelessWidget {
+class _SpotDetailScreenState extends State<SpotDetailScreen> {
   final PlaceDetail spot;
   final List<PlaceDetail> coupons = [];
+  String? userid;
 
-  bool isAndroid = Platform.isAndroid;
-  bool isIOS = Platform.isIOS;
+  _SpotDetailScreenState(this.spot);
 
-  SpotDetailScreen({required this.spot});
+  bool isAndroid = !kIsWeb && Platform.isAndroid; // WebではないかつAndroidの場合にtrue
+  bool isIOS = !kIsWeb && Platform.isIOS; // WebではないかつiOSの場合にtrue
+
+  bool _isDataLoaded = false;
 
   final ClickInfoController _clickInfoController = ClickInfoController();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserid();
+  }
 
   void _sharePage(BuildContext context) {
     final String deepLinkUrl = 'mapapp://spot/${spot.placeId}';
@@ -57,16 +78,38 @@ class SpotDetailScreen extends StatelessWidget {
     }
   }
 
+  Future<void> _loadUserid() async {
+    try {
+      AuthUser authUser = await Amplify.Auth.getCurrentUser();
+      setState(() {
+        userid = authUser.userId;
+        _isDataLoaded = true; // データがロードされたことを示す
+      });
+    } catch (e) {
+      print(e);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    print('Coupon ID: ${spot.couponId}');
     return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          spot.name ?? '', // AppBarのタイトルを設定します
+          style: TextStyle(
+            fontSize: 15.0,
+            fontWeight: FontWeight.bold,
+          ),
+          overflow: TextOverflow.ellipsis, // タイトルが長すぎる場合には省略記号（...）で表示します
+        ),
+        centerTitle: true, // タイトルを中央に配置します
+      ),
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
             Container(
-              height: (450 * 9) /
+              height: (450 * 16) /
                   16, // Calculate height based on a 16:9 aspect ratio
               width: MediaQuery.of(context)
                   .size
@@ -85,9 +128,10 @@ class SpotDetailScreen extends StatelessWidget {
 
                       return Container(
                         width: MediaQuery.of(context).size.width, // 画面の幅に合わせる
+                        height:
+                            MediaQuery.of(context).size.width, // 高さも画面の幅に合わせる
                         child: ClipRRect(
-                          borderRadius: BorderRadius.circular(8.0),
-                          child: (spot.imageUrl!.isEmpty)
+                          child: (spot.imageUrl?.isEmpty ?? true)
                               ? Image(
                                   image: AssetImage('images/noimage.png'),
                                   fit: BoxFit.cover,
@@ -99,42 +143,6 @@ class SpotDetailScreen extends StatelessWidget {
                         ),
                       );
                     },
-                  ),
-                  Positioned(
-                    top: 45,
-                    left: 0,
-                    right: 10,
-                    child: Row(
-                      mainAxisAlignment:
-                          MainAxisAlignment.spaceBetween, // これで左寄せと右寄せになります
-                      children: [
-                        IconButton(
-                          icon: Icon(Icons.arrow_back),
-                          onPressed: () {
-                            Navigator.pop(context);
-                          },
-                        ),
-                        ElevatedButton.icon(
-                          onPressed: () => _sharePage(context),
-                          icon: Icon(
-                            Icons.ios_share,
-                            size: 15,
-                          ),
-                          label: Text(
-                            '送る',
-                            style: TextStyle(fontSize: 15),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            primary: Colors.black45, // ボタンの背景色
-                            onPrimary: Color(0xFFF6E6DC), // ボタンのテキスト色
-                            shape: RoundedRectangleBorder(
-                              borderRadius:
-                                  BorderRadius.circular(20), // 角の丸みを20の半径で設定
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
                   ),
                 ],
               ),
@@ -148,7 +156,7 @@ class SpotDetailScreen extends StatelessWidget {
                     Text(
                       '※公式HPより引用',
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: 10,
                       ),
                     ),
                     SizedBox(
@@ -166,6 +174,24 @@ class SpotDetailScreen extends StatelessWidget {
                             fontWeight: FontWeight.bold,
                           ),
                         ),
+                        if (_isDataLoaded)
+                          if (!kIsWeb)
+                            FavoriteIconWidget(
+                              userId: userid ?? '',
+                              placeId: spot.placeId ?? 0, // 実際の場所IDを設定する
+                              isFavorite: false, // お気に入り状態を設定する
+                            ),
+                      ],
+                    ),
+                    Text(
+                      '${spot.city ?? ''}${spot.chome ?? ''}${(spot.banchi?.isEmpty ?? true) ? '' : '-'}${spot.banchi ?? ''}${(spot.go?.isEmpty ?? true) ? '' : '-'}${spot.go ?? ''}${spot.buildingName ?? ''}',
+                      style: TextStyle(fontSize: 12),
+                    ),
+                    SizedBox(
+                      height: 15,
+                    ),
+                    Row(
+                      children: [
                         ElevatedButton.icon(
                           onPressed: () {
                             launch(
@@ -185,11 +211,30 @@ class SpotDetailScreen extends StatelessWidget {
                             // 他にも影の色や形状などを設定できます
                           ),
                         ),
+                        SizedBox(
+                          width: 20,
+                        ),
+                        if (!kIsWeb)
+                          ElevatedButton.icon(
+                            onPressed: () => _sharePage(context),
+                            icon: Icon(
+                              Icons.ios_share,
+                              size: 15,
+                            ),
+                            label: Text(
+                              '送る',
+                              style: TextStyle(fontSize: 15),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              primary: Colors.black45, // ボタンの背景色
+                              onPrimary: Color(0xFFF6E6DC), // ボタンのテキスト色
+                              shape: RoundedRectangleBorder(
+                                borderRadius:
+                                    BorderRadius.circular(20), // 角の丸みを20の半径で設定
+                              ),
+                            ),
+                          ),
                       ],
-                    ),
-                    Text(
-                      '${spot.city ?? ''}${spot.chome ?? ''}${(spot.banchi?.isEmpty ?? true) ? '' : '-'}${spot.banchi ?? ''}${(spot.go?.isEmpty ?? true) ? '' : '-'}${spot.go ?? ''}${spot.buildingName ?? ''}',
-                      style: TextStyle(fontSize: 12),
                     ),
                     SizedBox(height: 10),
                     Divider(),

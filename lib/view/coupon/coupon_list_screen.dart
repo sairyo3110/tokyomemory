@@ -1,12 +1,13 @@
 import 'dart:async';
+import 'dart:math';
 import 'dart:typed_data';
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:mapapp/component/coupon_search_box.dart';
-import 'package:mapapp/test/PlaceChategories.dart';
-import 'package:mapapp/test/places_provider.dart';
-import 'package:mapapp/test/rerated_model.dart';
+import 'package:mapapp/component/serachbox/coupon_search_box.dart';
+import 'package:mapapp/provider/PlaceChategories.dart';
+import 'package:mapapp/provider/places_provider.dart';
+import 'package:mapapp/model/rerated_model.dart';
 import 'package:mapapp/view/coupon/coupon_selection_screen.dart';
 import 'package:mapbox_gl/mapbox_gl.dart';
 
@@ -40,10 +41,8 @@ class _CouponListScreenState extends State<CouponListScreen> {
   int? _minPrice;
   int? _maxPrice;
   int? _selectedCategoryId;
-  TextEditingController _minPriceController = TextEditingController();
-  TextEditingController _maxPriceController = TextEditingController();
 
-  List<PlaceCategory> _categories = [];
+  List<PlaceCategorySub> _categories = [];
   bool _isLoadingCategories = true;
 
   bool _showFilter = true; // この変数でフィルタリング表示の表示/非表示を切り替えます。
@@ -92,7 +91,7 @@ class _CouponListScreenState extends State<CouponListScreen> {
 
   fetchCoupons() async {
     try {
-      PlacesProvider placesProvider = PlacesProvider(context);
+      PlacesProvider placesProvider = PlacesProvider();
       List<PlaceDetail> fetchedCoupons =
           await placesProvider.fetchPlaceAllDetails('coupons');
       setState(() {
@@ -117,17 +116,28 @@ class _CouponListScreenState extends State<CouponListScreen> {
       filteredCoupons = coupons.where((coupon) {
         final bool matchesSearchTerm = searchTerm.isEmpty ||
             coupon.name!.toLowerCase().contains(searchTerm.toLowerCase());
-        final int couponPrice =
-            int.tryParse(coupon.nightMax?.toString() ?? '0') ?? 0;
+
         final bool matchesLocation = _selectedLocation.isEmpty ||
-            coupon.address!.contains(_selectedLocation);
+            coupon.city!.contains(_selectedLocation);
+
         final bool matchesCategory = _selectedCategoryId == null ||
-            coupon.categoryId == _selectedCategoryId;
-        final bool matchesPrice =
-            (_minPrice != null && couponPrice >= _minPrice! ||
-                    _minPrice == null) &&
-                (_maxPrice != null && couponPrice <= _maxPrice! ||
-                    _maxPrice == null);
+            coupon.subcategoryId == _selectedCategoryId;
+
+        // dayMin, nightMin, dayMax, nightMax の値をdoubleとして取得
+        final double dayMin = double.tryParse(coupon.dayMin ?? '0') ?? 0.0;
+        final double nightMin = double.tryParse(coupon.nightMin ?? '0') ?? 0.0;
+        final double dayMax = double.tryParse(coupon.dayMax ?? '0') ?? 0.0;
+        final double nightMax = double.tryParse(coupon.nightMax ?? '0') ?? 0.0;
+
+        // 最低値と最高値を決定する
+        final double minPrice = min(dayMin, nightMin);
+        final double maxPrice = max(dayMax, nightMax);
+
+        // 最低値と最高値を用いてフィルタリングする
+        final bool matchesPrice = (_minPrice != null &&
+                    minPrice >= _minPrice! ||
+                _minPrice == null) &&
+            (_maxPrice != null && maxPrice <= _maxPrice! || _maxPrice == null);
 
         return matchesLocation &&
             matchesCategory &&
@@ -139,8 +149,8 @@ class _CouponListScreenState extends State<CouponListScreen> {
 
   Future<void> _fetchCategories() async {
     try {
-      var provider = PlacesProvider(context); // PlacesProvider のインスタンスを作成
-      var categories = await provider.fetchPlaceCategories();
+      var provider = PlacesProvider(); // PlacesProvider のインスタンスを作成
+      var categories = await provider.fetchPlaceCategoriesSub();
       setState(() {
         _categories = categories;
         _isLoadingCategories = false;
@@ -177,7 +187,7 @@ class _CouponListScreenState extends State<CouponListScreen> {
 
         // 位置に基づくフィルタリング
         if (widget.location.isNotEmpty) {
-          locationMatch = coupon.address!.contains(widget.location);
+          locationMatch = coupon.city!.contains(widget.location);
         }
 
         // 価格に基づくフィルタリング
@@ -185,7 +195,7 @@ class _CouponListScreenState extends State<CouponListScreen> {
           try {
             RangeValues? priceRange = extractPriceRange(widget.price);
             if (priceRange != null) {
-              int couponPrice = int.parse(coupon.nightMax as String);
+              int couponPrice = int.parse(coupon.dayMin as String);
               priceMatch = couponPrice >= priceRange.start &&
                   couponPrice <= priceRange.end;
             }
@@ -251,7 +261,7 @@ class _CouponListScreenState extends State<CouponListScreen> {
                 )
               : ListView.builder(
                   controller: _listScrollController, // ここを追加
-                  padding: EdgeInsets.only(top: _showFilter ? 400.0 : 200.0),
+                  padding: EdgeInsets.only(top: _showFilter ? 420.0 : 200.0),
                   itemCount: filteredCoupons.length, // ここを変更
                   itemBuilder: (BuildContext context, int index) {
                     final coupon = filteredCoupons[index]; // ここを変更
@@ -372,12 +382,6 @@ class _CouponListScreenState extends State<CouponListScreen> {
                   SizedBox(height: 60), // 上部に余白を追加
                   Row(
                     children: [
-                      IconButton(
-                        icon: Icon(Icons.arrow_back),
-                        onPressed: () {
-                          Navigator.pop(context);
-                        },
-                      ),
                       Expanded(
                         child: CouponSearchBox(
                           controller: _searchController,
@@ -408,7 +412,7 @@ class _CouponListScreenState extends State<CouponListScreen> {
             top: 130.0,
             left: 0.0,
             right: 0.0,
-            height: 270.0,
+            height: 280.0,
             child: _showFilter ? _buildFilterPanel() : _buildFilterIcon(),
           ),
         ],
@@ -491,8 +495,10 @@ class _CouponListScreenState extends State<CouponListScreen> {
                             .firstWhere(
                                 (category) =>
                                     category.categoryId == _selectedCategoryId,
-                                orElse: () =>
-                                    PlaceCategory(name: '', categoryId: -1))
+                                orElse: () => PlaceCategorySub(
+                                    name: '',
+                                    categoryId: -1,
+                                    parentCategoryId: 0))
                             .name,
                         onOptionSelected: (value) {
                           setState(() {
@@ -629,89 +635,35 @@ class _CouponListScreenState extends State<CouponListScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('値段', style: TextStyle(fontWeight: FontWeight.bold)),
+        Text('予算', style: TextStyle(fontWeight: FontWeight.bold)),
+        RangeSlider(
+          values: RangeValues(
+              _minPrice?.toDouble() ?? 0, _maxPrice?.toDouble() ?? 20000),
+          min: 0,
+          max: 20000,
+          divisions: 200,
+          onChanged: (values) {
+            setState(() {
+              _minPrice = values.start.toInt();
+              _maxPrice = values.end.toInt();
+              _filterCoupons(); // 予算が変更されるたびにクーポンをフィルタリングする
+            });
+          },
+          labels: RangeLabels(
+            '${_minPrice ?? 0}円',
+            '${_maxPrice ?? 20000}円',
+          ),
+          activeColor: Color(0xFFF6E6DC), // アクティブな部分の色
+          inactiveColor: Colors.grey, // 非アクティブな部分の色
+        ),
         Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Expanded(
-              child: GestureDetector(
-                onTap: () async {
-                  int? selectedPrice = await _showPricePicker();
-                  if (selectedPrice != null) {
-                    setState(() {
-                      _minPrice = selectedPrice;
-                      _minPriceController.text = selectedPrice.toString();
-                      _filterCoupons();
-                    });
-                  }
-                },
-                child: AbsorbPointer(
-                  child: TextField(
-                    controller: _minPriceController,
-                    decoration: InputDecoration(
-                      labelText: '最小値',
-                      labelStyle: TextStyle(fontSize: 12),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            SizedBox(width: 10),
-            Text('〜', style: TextStyle()),
-            SizedBox(width: 10),
-            Expanded(
-              child: GestureDetector(
-                onTap: () async {
-                  int? selectedPrice = await _showPricePicker();
-                  if (selectedPrice != null) {
-                    setState(() {
-                      _maxPrice = selectedPrice;
-                      _maxPriceController.text = selectedPrice.toString();
-                      _filterCoupons();
-                    });
-                  }
-                },
-                child: AbsorbPointer(
-                  child: TextField(
-                    controller: _maxPriceController,
-                    decoration: InputDecoration(
-                      labelText: '最大値',
-                      labelStyle: TextStyle(fontSize: 12),
-                    ),
-                  ),
-                ),
-              ),
-            ),
+            Text('${_minPrice ?? 0}円'),
+            Text('${_maxPrice ?? 20000}円'),
           ],
         ),
       ],
-    );
-  }
-
-  Future<int?> _showPricePicker() async {
-    return await showDialog<int>(
-      context: context,
-      builder: (BuildContext context) {
-        int selectedPrice = 0;
-        return AlertDialog(
-          title: Text('価格を選択'),
-          content: Container(
-            width: double.minPositive,
-            child: ListView.builder(
-              shrinkWrap: true,
-              itemCount: 51, // 0 to 50000 with an interval of 1000
-              itemBuilder: (BuildContext context, int index) {
-                return ListTile(
-                  title: Text('${index * 1000}円'),
-                  onTap: () {
-                    selectedPrice = index * 1000;
-                    Navigator.of(context).pop(selectedPrice);
-                  },
-                );
-              },
-            ),
-          ),
-        );
-      },
     );
   }
 

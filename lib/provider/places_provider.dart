@@ -1,14 +1,12 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:mapapp/test/PlaceChategories.dart';
-import 'package:mapapp/test/rerated_model.dart';
+import 'package:mapapp/provider/PlaceChategories.dart';
+import 'package:mapapp/model/rerated_model.dart';
 
 class PlacesProvider with ChangeNotifier {
   final String _baseUrl =
       'https://r1ahdkatn2.execute-api.ap-northeast-1.amazonaws.com/mymap';
-
-  PlacesProvider(BuildContext context);
 
   Future<List<PlaceDetail>> fetchPlaceAllDetails(String endpoint,
       {String? keyword}) async {
@@ -122,5 +120,38 @@ class PlacesProvider with ChangeNotifier {
     }
 
     return filteredPlaces;
+  }
+
+  Future<List<int>> fetchFilteredPlaceIds({
+    required List<String> selectedLocations,
+    required int minPrice,
+    required int maxPrice,
+    required List<int> selectedCategoryIds,
+  }) async {
+    List<PlaceDetail> allPlaces = await fetchPlaceAllDetails('places');
+    List<int> filteredPlaceIds = [];
+
+    for (var place in allPlaces) {
+      bool matchesLocation = selectedLocations.isEmpty ||
+          selectedLocations.any((location) =>
+              place.city!.contains(location) ||
+              (place.chome != null && place.chome!.contains(location)) ||
+              (place.nearestStation != null &&
+                  place.nearestStation!.contains(location)));
+      bool matchesCategory = selectedCategoryIds.isEmpty ||
+          selectedCategoryIds.contains(place.subcategoryId);
+      print(matchesCategory);
+
+      double dayMin = double.tryParse(place.dayMin ?? '0') ?? 0.0;
+      double dayMax = double.tryParse(place.dayMax ?? '0') ?? 0.0;
+      bool matchesPrice = (minPrice <= dayMin && dayMax <= maxPrice) ||
+          (minPrice == 0 && maxPrice == 0);
+
+      if (matchesLocation && matchesCategory && matchesPrice) {
+        filteredPlaceIds.add(place.placeId!);
+      }
+    }
+
+    return filteredPlaceIds;
   }
 }

@@ -348,7 +348,14 @@ class _UserIvitateDialogState extends State<UserIvitateDialog> {
             ),
             SizedBox(height: 5),
             Text(
-              '※不正が発覚した場合は当選を見送らせていただきます',
+              '※不正が発覚した場合は当選を見送らせていただきます。',
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            Text(
+              '※このキャンペーンにAppleは一切関与しておりません。',
               style: TextStyle(
                 fontSize: 10,
                 fontWeight: FontWeight.bold,

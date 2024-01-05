@@ -1,39 +1,34 @@
-import 'package:flutter/material.dart';
 import 'dart:async';
 
-import 'package:mapapp/test/places_provider.dart';
-import 'package:mapapp/test/rerated_model.dart';
+import 'package:flutter/material.dart';
+import 'package:mapapp/provider/places_provider.dart';
+import 'package:mapapp/model/rerated_model.dart';
 
-class MapSearchBox extends StatefulWidget {
+class CouponSearchBox extends StatefulWidget {
   final TextEditingController controller;
-  final Function(PlaceDetail?) onPlaceSelected;
 
-  MapSearchBox({
-    required this.controller,
-    required this.onPlaceSelected,
-  });
+  CouponSearchBox({required this.controller});
 
   @override
-  _MapSearchBoxState createState() => _MapSearchBoxState();
+  _CouponSearchBoxState createState() => _CouponSearchBoxState();
 }
 
-class _MapSearchBoxState extends State<MapSearchBox> {
+class _CouponSearchBoxState extends State<CouponSearchBox> {
   List<PlaceDetail> _searchResults = [];
   bool _isLoading = false;
-  OverlayEntry? _overlayEntry;
   Timer? _debounceTimer;
   late PlacesProvider _placesProvider;
 
   @override
   void initState() {
     super.initState();
-    _placesProvider = PlacesProvider(context);
+    _placesProvider = PlacesProvider();
   }
 
   @override
   void dispose() {
     _debounceTimer?.cancel();
-    _removeOverlay();
+
     super.dispose();
   }
 
@@ -44,7 +39,6 @@ class _MapSearchBoxState extends State<MapSearchBox> {
 
     _debounceTimer = Timer(Duration(milliseconds: 500), () async {
       if (value.trim().isEmpty) {
-        _removeOverlay();
         return;
       }
 
@@ -58,7 +52,6 @@ class _MapSearchBoxState extends State<MapSearchBox> {
         setState(() {
           _searchResults = places;
         });
-        _showOverlay(context);
       } catch (e) {
         print("Error fetching places: $e");
       } finally {
@@ -67,45 +60,6 @@ class _MapSearchBoxState extends State<MapSearchBox> {
         });
       }
     });
-  }
-
-  void _showOverlay(BuildContext context) {
-    if (_overlayEntry != null) {
-      _removeOverlay();
-    }
-    _overlayEntry = OverlayEntry(
-      builder: (context) => Positioned(
-        top: 125.0,
-        left: 0.0,
-        right: 0.0,
-        bottom: 0.0,
-        child: Material(
-          child: Container(
-            color: Color(0xFF444440),
-            child: ListView.builder(
-              itemCount: _searchResults.length,
-              itemBuilder: (context, index) {
-                final place = _searchResults[index];
-                return ListTile(
-                  title: Text(place.name ?? ''),
-                  subtitle: Text(place.city ?? ''),
-                  onTap: () {
-                    widget.onPlaceSelected(place);
-                    _removeOverlay();
-                  },
-                );
-              },
-            ),
-          ),
-        ),
-      ),
-    );
-    Overlay.of(context).insert(_overlayEntry!);
-  }
-
-  void _removeOverlay() {
-    _overlayEntry?.remove();
-    _overlayEntry = null;
   }
 
   @override
@@ -126,6 +80,9 @@ class _MapSearchBoxState extends State<MapSearchBox> {
                     ),
                     decoration: InputDecoration(
                       labelText: 'エリア・施設名・キーワード',
+                      labelStyle: TextStyle(
+                        color: Color(0xFFF6E6DC), // ラベル（プレースホルダー）の色
+                      ),
                       suffixIcon: widget.controller.text.isNotEmpty
                           ? IconButton(
                               icon: Icon(Icons.clear),
@@ -134,8 +91,6 @@ class _MapSearchBoxState extends State<MapSearchBox> {
                                   widget.controller.clear();
                                   _searchResults.clear();
                                 });
-                                widget.onPlaceSelected(null);
-                                _removeOverlay();
                               },
                             )
                           : null,

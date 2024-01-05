@@ -23,7 +23,7 @@ class MederuPRpages extends StatelessWidget {
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
               ),
-              textAlign: TextAlign.center, // オプション: センター揃えを追加
+              textAlign: TextAlign.center,
             ),
           ),
 

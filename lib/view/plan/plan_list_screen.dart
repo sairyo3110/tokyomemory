@@ -3,8 +3,8 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:mapapp/model/plan.dart';
 import 'package:mapapp/repository/date_plan_controller.dart';
-import 'package:mapapp/test/places_provider.dart';
-import 'package:mapapp/test/rerated_model.dart';
+import 'package:mapapp/provider/places_provider.dart';
+import 'package:mapapp/model/rerated_model.dart';
 import 'plan_detail_screenrealy.dart';
 
 class PlanListScreen extends StatefulWidget {
@@ -45,11 +45,8 @@ class _PlanListScreenState extends State<PlanListScreen> {
           .expand((x) => x)
           .toSet()
           .toList();
-      futurePlaceDetails =
-          PlacesProvider(context).fetchFilteredPlaceDetails(spotIds);
-      PlacesProvider(context)
-          .fetchFilteredPlaceDetails(spotIds)
-          .then((placeDetails) {
+      futurePlaceDetails = PlacesProvider().fetchFilteredPlaceDetails(spotIds);
+      PlacesProvider().fetchFilteredPlaceDetails(spotIds).then((placeDetails) {
         // デバッグコンソールに取得した場所の詳細を出力
         for (PlaceDetail place in placeDetails) {
           debugPrint('Place: ${place.imageUrl}, ID: ${place.placeId}');
