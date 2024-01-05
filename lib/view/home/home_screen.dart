@@ -109,7 +109,7 @@ class _HomeScreenState extends State<HomeScreen> {
           context: context,
           builder: (BuildContext context) {
             return AlertDialog(
-              title: Text('アプリ版のお知らせ'),
+              title: Text("アプリ版のお知らせ"),
               content: SingleChildScrollView(
                 child: ListBody(
                   children: <Widget>[
