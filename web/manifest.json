@@ -1,13 +1,24 @@
 {
-    "name": "mapapp",
-    "short_name": "mapapp",
+    "name": "tokyomemory",
+    "short_name": "トーメモ",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "地名やプランから検索できるデートスポット検索アプリです。",
     "orientation": "portrait-primary",
-    "prefer_related_applications": false,
+    "related_applications": [
+        {
+            "platform": "play",
+            "url": "https://play.google.com/store/apps/details?id=tokyomemory.mapapp0918&pli=1",
+            "id": "com.enoiu.codes"
+        }, 
+        {
+            "platform": "itunes",
+            "url": "https://apps.apple.com/jp/app/tokyo-memory/id6466747873"
+        }
+    ],
+    "prefer_related_applications": true,
     "icons": [
         {
             "src": "icons/Icon-192.png",

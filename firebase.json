@@ -1,0 +1,54 @@
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "tokyo-memory",
+          "appId": "1:1095079858429:android:8a79e4330748d0e87bae94",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "ios": {
+        "default": {
+          "projectId": "tokyo-memory",
+          "appId": "1:1095079858429:ios:779b6ca4f66ac4337bae94",
+          "uploadDebugSymbols": false,
+          "fileOutput": "ios/Runner/GoogleService-Info.plist"
+        }
+      },
+      "macos": {
+        "default": {
+          "projectId": "tokyo-memory",
+          "appId": "1:1095079858429:ios:7dbdcd2276460a3b7bae94",
+          "uploadDebugSymbols": false,
+          "fileOutput": "macos/Runner/GoogleService-Info.plist"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "tokyo-memory",
+          "configurations": {
+            "android": "1:1095079858429:android:8a79e4330748d0e87bae94",
+            "ios": "1:1095079858429:ios:779b6ca4f66ac4337bae94",
+            "macos": "1:1095079858429:ios:7dbdcd2276460a3b7bae94",
+            "web": "1:1095079858429:web:beac90f4cd381b527bae94",
+            "windows": "1:1095079858429:web:96a5237ec9992cf67bae94"
+          }
+        }
+      }
+    }
+  },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ]
+    }
+  ]
+}

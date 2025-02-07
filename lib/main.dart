@@ -1,98 +1,157 @@
-import 'package:amplify_auth_cognito/amplify_auth_cognito.dart';
-import 'package:amplify_flutter/amplify_flutter.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
-import 'package:mapapp/amplifyconfiguration.dart';
-import 'package:mapapp/importer.dart';
-import 'package:mapapp/view/authenticator/Introslider.dart';
-import 'package:mapapp/view/home/home_screen.dart';
+import 'package:flutter_line_sdk/flutter_line_sdk.dart';
+import 'package:mapapp/businesslogic/article.dart';
+import 'package:mapapp/businesslogic/plan/plan_chategory.dart';
+import 'package:mapapp/businesslogic/plan/plan_main.dart';
+import 'package:mapapp/businesslogic/spot/spot_access.dart';
+import 'package:mapapp/businesslogic/spot/spot_chategory.dart';
+import 'package:mapapp/businesslogic/spot/spot_main.dart';
+import 'package:mapapp/businesslogic/user/user.dart';
+import 'package:mapapp/colors.dart';
+import 'package:mapapp/repository/plan/plan_category.dart';
+import 'package:mapapp/repository/spot/spot.dart';
+import 'package:mapapp/repository/spot/spot_access.dart';
+import 'package:mapapp/service/analytics.dart';
+import 'package:mapapp/view/common/bottomnavigation.dart';
+import 'package:provider/provider.dart';
+import 'businesslogic/coupon/coupon_main.dart';
+import 'firebase_options.dart';
+import 'package:mapapp/repository/plan/plan.dart';
+import 'package:appsflyer_sdk/appsflyer_sdk.dart' as afs;
 
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Amplifyプラグインのインスタンスを作成
-  AmplifyAuthCognito authPlugin = AmplifyAuthCognito();
-
-  try {
-    // AmplifyにAuthプラグインを追加
-    Amplify.addPlugin(authPlugin);
-
-    // Amplifyを設定
-    await Amplify.configure(amplifyconfig);
-    print('Amplify successfully configured');
-  } on AmplifyAlreadyConfiguredException {
-    print('Amplify was already configured. Was the app restarted?');
-  } on AmplifyException catch (e) {
-    print('Could not configure Amplify: ${e.message}');
-  }
-
-  runApp(
-    MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (context) => AppVersionController()),
-        ChangeNotifierProvider(create: (context) => MapControllerProvider()),
-        ChangeNotifierProvider(create: (context) => PlacesProvider()),
-      ],
-      child: const MyApp(),
-    ),
+  // Firebaseの初期化
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  // FCM の通知権限リクエスト
+  final messaging = FirebaseMessaging.instance;
+  await messaging.requestPermission(
+    alert: true,
+    announcement: false,
+    badge: true,
+    carPlay: false,
+    criticalAlert: false,
+    provisional: false,
+    sound: true,
+  );
+
+  // FCMトークンの取得
+  final token = await messaging.getToken();
+  print('🐯 FCM TOKEN: $token');
+
+  // Firebase Messagingのバックグラウンドメッセージハンドラーの登録
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
+  // AppsFlyerの初期化
+  afs.AppsFlyerOptions appsFlyerOptions = afs.AppsFlyerOptions(
+    afDevKey:
+        "GjTTzGQ5bPzFEKsixXxsKg", // Replace with your actual AppsFlyer dev key
+    appId: "6466747873", // Replace with your actual AppsFlyer app ID
+    showDebug: true,
+    timeToWaitForATTUserAuthorization: 50,
+    disableAdvertisingIdentifier: true,
+    disableCollectASA: true,
+  );
+
+  afs.AppsflyerSdk appsflyerSdk = afs.AppsflyerSdk(appsFlyerOptions);
+
+  appsflyerSdk.onAppOpenAttribution((res) {
+    print("res: " + res.toString());
+  });
+
+  // AppsFlyerのディープリンクコールバック
+  appsflyerSdk.onDeepLinking((afs.DeepLinkResult dp) {
+    switch (dp.status) {
+      case afs.Status.FOUND:
+        print(dp.deepLink?.toString());
+        print("deep link value: ${dp.deepLink?.deepLinkValue}");
+        break;
+      case afs.Status.NOT_FOUND:
+        print("deep link not found");
+        break;
+      case afs.Status.ERROR:
+        print("deep link error: ${dp.error}");
+        break;
+      case afs.Status.PARSE_ERROR:
+        print("deep link status parsing error");
+        break;
+    }
+  });
+
+  await appsflyerSdk.initSdk(
+    registerConversionDataCallback: true,
+    registerOnAppOpenAttributionCallback: true,
+    registerOnDeepLinkingCallback: true,
+  );
+
+  // Firebase Analyticsでアプリ起動イベントをログに記録
+  FirebaseLogger logger = FirebaseLogger.instance;
+  await logger.logAppOpen();
+
+  // Line SDKの初期化
+  await LineSDK.instance.setup("2005805864");
+  print("LineSDK 準備完了");
+
+  runApp(MyApp());
+}
+
+// Firebase Messagingバックグラウンドメッセージハンドラー
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp();
+  print('Handling a background message: ${message.messageId}');
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
+  MyApp({Key? key}) : super(key: key);
+
+  final FirebaseLogger logger = FirebaseLogger.instance;
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        brightness: Brightness.dark,
-        scaffoldBackgroundColor: Color(0xFF444440),
-        textTheme: const TextTheme(
-          bodyLarge: TextStyle(color: Color(0xFFF6E6DC)),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(
+          create: (context) => SpotViewModel(SpotRepository()),
         ),
-      ),
-      home: kIsWeb ? HomeScreen() : IntroSliderScreen(),
-      builder: (context, child) {
-        return Scaffold(
-          body: child,
-          bottomNavigationBar: kIsWeb ? DownloadBanner() : null, // Webの場合のみ表示
-        );
-      },
-    );
-  }
-}
-
-class DownloadBanner extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    double screenWidth = MediaQuery.of(context).size.width;
-    double textWidth = screenWidth * 0.6; // 画面幅の80%を使用
-    final String _url = 'https://sora-tokyo-dateplan.com/tokyomemory/';
-    return Container(
-      padding: EdgeInsets.all(16),
-      color: Color(0xFFF6E6DC),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          SizedBox(
-            width: textWidth,
-            child: Text(
-              'マップ表示や保存機能などデートをする時に必要な機能盛りだくさん！',
-              style: TextStyle(color: Color(0xFF444440)),
-            ),
+        ChangeNotifierProvider(
+          create: (context) => PlanViewModel(
+              PlanRepository(), SpotRepository(), PlanCategoryRepository()),
+        ),
+        ChangeNotifierProvider(
+          create: (context) => CouponViewModel(SpotRepository()),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => UserProvider()..loadUserid(),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => SpotCategoriesSubProvider(),
+        ),
+        ChangeNotifierProvider(
+          create: (context) => PlanCategoryModel()..fetchPlanCategories(),
+        ),
+        ChangeNotifierProvider(
+          create: (context) => PlaceAccessViewModel(PlaceAccessRepository()),
+        ),
+        ChangeNotifierProvider(create: (_) => ArticleProvider()),
+      ],
+      child: MaterialApp(
+        title: 'MapApp',
+        theme: ThemeData(
+          colorScheme: ColorScheme.fromSwatch().copyWith(
+            background: AppColors.primary,
           ),
-          ElevatedButton(
-            child: Text('ダウンロード'),
-            onPressed: () async {
-              if (await canLaunch(_url)) {
-                await launch(_url);
-              } else {
-                // リンクを開くことができない場合の処理
-                print('Could not launch $_url');
-              }
-            },
+          bottomNavigationBarTheme: BottomNavigationBarThemeData(
+            backgroundColor: Colors.black,
           ),
-        ],
+        ),
+        navigatorObservers: <NavigatorObserver>[logger.observer],
+        home: MainBottomNavigation(),
       ),
     );
   }

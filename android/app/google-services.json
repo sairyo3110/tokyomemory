@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1095079858429",
+    "project_id": "tokyo-memory",
+    "storage_bucket": "tokyo-memory.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1095079858429:android:8a79e4330748d0e87bae94",
+        "android_client_info": {
+          "package_name": "tokyomemory.mapapp0918"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCXOzz_XgmI11yChmeHR0oEo0B6h1Fs0iA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
